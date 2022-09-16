@@ -1,8 +1,26 @@
-FROM anapsix/alpine-java:8
-LABEL maintainer="Kilna kilna@kilna.com"
+FROM openjdk:12-alpine as alpine-java
+LABEL maintainer="as"
 
-ARG liquibase_version=3.5.3
-ARG liquibase_download_url=https://github.com/liquibase/liquibase/releases/download/liquibase-parent-${liquibase_version}
+# install locales
+ENV MUSL_LOCALE_DEPS cmake make musl-dev gcc gettext-dev libintl
+ENV MUSL_LOCPATH /usr/share/i18n/locales/musl
+
+RUN apk add --no-cache \
+    $MUSL_LOCALE_DEPS \
+    && wget https://gitlab.com/rilian-la-te/musl-locales/-/archive/master/musl-locales-master.zip \
+    && unzip musl-locales-master.zip \
+      && cd musl-locales-master \
+      && cmake -DLOCALE_PROFILE=OFF -D CMAKE_INSTALL_PREFIX:PATH=/usr . && make && make install \
+      && cd .. && rm -r musl-locales-master
+RUN apk add --no-cache --upgrade bash
+
+
+#=====
+
+FROM alpine-java as liquibase
+
+ARG liquibase_version=4.15.0
+ARG liquibase_download_url=https://github.com/liquibase/liquibase/releases/download/v${liquibase_version}
 
 ENV LIQUIBASE_DATABASE=${LIQUIBASE_DATABASE:-liquibase}\
     LIQUIBASE_USERNAME=${LIQUIBASE_USERNAME:-liquibase}\
@@ -15,8 +33,8 @@ COPY bin/* /usr/local/bin/
 COPY test/ /opt/test_liquibase/
 RUN set -e -o pipefail;\
     chmod +x /usr/local/bin/* /opt/test_liquibase/run_test.sh;\
-    apk --no-cache add curl ca-certificates;\ 
-    tarfile=liquibase-${liquibase_version}-bin.tar.gz;\
+    apk --no-cache add curl ca-certificates;\
+    tarfile=liquibase-${liquibase_version}.tar.gz;\
     mkdir /opt/liquibase;\
     cd /opt/liquibase;\
     curl -SOLs ${liquibase_download_url}/${tarfile};\
@@ -30,4 +48,4 @@ COPY liquibase.properties /workspace/liquibase.properties
 WORKDIR /workspace
 ONBUILD VOLUME /workspace
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
-CMD ['/bin/sh', '-i']
+CMD ["/bin/sh", "-i"]

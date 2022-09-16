@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -o pipefail
 
-is_true() { [[ "${1^^}" =~ ^(1|T|TRUE|Y|YES)$ ]]; }
+is_true(){ [[ "${1^^}" =~ ^(1|T|TRUE|Y|YES)$ ]]; }
 
 if is_true "${LIQUIBASE_DEBUG}"; then
   set | grep LIQUIBASE_ >&2
@@ -9,7 +9,7 @@ fi
 
 if ! is_true "${LIQUIBASE_DISABLE_DRIVER_CHECK}"; then
   if [[ `ls -A /opt/jdbc/*.jar 2>/dev/null` == '' ]]; then
-    >&2 cat <<'EOF' 
+    >&2 cat <<'EOF'
 You appear to be running the liquibase docker image without any drivers
 in /opt/jdbc.  You probably want to running an image with a database driver
 already loaded.  Some images you may can try instead are:
